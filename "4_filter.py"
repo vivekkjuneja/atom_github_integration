@@ -1,0 +1,124 @@
+import json
+import csv
+import sys
+
+source_cluster=sys.argv[1].upper()
+destination_cluster=sys.argv[2].upper()
+report_directory=sys.argv[3]
+
+def prep_exclude_param_json_file(exclude_parameter_file_txt):
+
+    filednames=["servicename","role-type","parameter"]
+
+    csv_filename=exclude_parameter_file_txt
+
+    exclude_parameter_list=open(csv_filename)
+
+    csv_reader=csv.DectReader(exclude_parameter_list,filednames)
+
+    exclude_parameters_json_file=report_directory+'exclude_parameter_json_file.json'
+
+    jsonf=open(exclude_parameters_json_file, 'w')
+
+    excludeparameterjson=json.dump([r for r in csv_reader], indent=4)
+
+    jsonf.write(excludeparameterjson)
+
+    exclude_parameter_list.close()
+
+    json.close()
+
+def filter_report(exclude_param_list,without_filter_compare_report):
+
+    with open (exclude_param_list) as excludelist:
+        excludeparam=json.load(excludelist)
+
+    rangelen=len(excludeparam)
+
+    summary={}
+    summary['config']={}
+
+    services=[]
+    roletype=[]
+    configname=[]
+
+    for i  in range(rangelen):
+        ex_service_type=excludeparam[i]['servicename']
+        ex_role_type=excludeparam[i]['role-type']
+        ex_config_name=excludeparam[i]['parameter']
+
+        if ex_service_type not in services:
+            services.append(ex_service_type)
+
+        if str(ex_service_type)+"-"+str(ex_role_type) not in roletype:
+            roletype.append(str(ex_service_type)+"-"+str(ex_role_type))
+
+        if str(ex_service_type)+"-"+str(ex_role_type)+"-"+str(ex_config_name) not in configname:
+            configname.append(str(ex_service_type)+"-"+str(ex_role_type)+"-"+str(ex_config_name))
+
+    with open(without_filter_compare_report) as alljson:
+        alldata=json.load(alljson)
+
+    numservices=len(alldata['config'])
+
+    excluded_services=["HUE","MAPREDUSE","OOZIE","IMPALA"]
+
+    readct_list_in_parameter_value=["Password","superDigest"]
+
+    redact_list_in_parameter_value_count=len(redact_list_in_parameter_value)
+
+    for service in range(numservices):
+        service_type=alldata['config'].keys()[service]
+
+        if str(service_type) not in excluded_services:
+            summary['config'][service_type]={}
+
+            rolerange=len(alldata['config'][service_type])
+
+            for role in range(rolerange):
+                role_type=alldata['config'][service_type].keys()[role]
+
+                if role_type not in summary['config'][service_type]:
+                    summary['config'][service_type][role_type]={}
+
+                    configrange=len(alldata['config'][service_type][role_type])
+
+                    for config in range(configrange):
+                        config_name=alldata['config'][service_type][role_type].keys()[config]
+                        destination_cluster_Value=alldata['config'][service_type][role_type][config_name][destination_cluster+'_value']
+                        source_cluster_Value=alldata['config'][service_type][role_type][config_name][source_cluster+'_value']
+
+                        if "password" in str(config_name).lower():
+
+                            config_value_destination_cluster_redacted='XXXXX'
+                            config_value_source_cluster_redacted='#####'
+
+                            if str(service_type)+"-"+str(role_type)+"-"+str(config_name) not in configname:
+                                summary['config'][service_type][role_type][config_name]={destination_cluster+"_Value":config_value_destination_cluster_redacted, source_cluster+"_Value":config_value_source_cluster_redacted}
+
+                            else:
+                                for redact_key in range(redact_list_in_parameter_value_count):
+                                    redact_value=str(redact_list_in_parameter_value_count[redact_key])
+
+                                    if (
+                                        str(destination_cluster_Value).find(redact_key) is not -1 or
+                                        str(source_cluster_Value).find(redact_key) is not -1
+                                    ):
+                                        print str(source_cluster_Value),str(destination_cluster_Value)
+
+                                        config_value_destination_cluster_redacted=(str(destination_cluster_Value)).split(redact_value,1)[0]+" ###sensative data so trimmed remaining ###"
+
+                                        config_value_source_cluster_redacted=(str(source_cluster_Value)).split(redact_value,1)[0]+" ###sensative data so trimmed remaining ###"
+
+                                        if str(service_type)+"-"+str(role_type)+"-"+str(config_name) not in configname:
+                                            summary['config'][service_type][role_type][config_name]={destination_cluster+"_Value":destination_cluster_Value, source_cluster+"_Value":source_cluster_Value}
+
+    summary_filtered_report=report_directory+source_cluster+"-"+destination_cluster+"_summary_filtered_redacted_report.json"
+
+    with open(summary_filtered_report, 'w') as writefilteredreport:
+        json.dump(summary, writefilteredreport, indent=4, sort_keys=True)
+
+
+### Calling Function
+
+prep_exclude_param_json_file('exclude_parameter.csv')
