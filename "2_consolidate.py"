@@ -1,0 +1,125 @@
+import json
+import sys
+
+source_cluster=sys.argv[1].upper()
+destination_cluster=sys.argv[2].upper()
+report_directory=sys.argv[3]
+
+def prepare_cluster_consolidated_config_file(cluster_name):
+
+    cluster_config={}
+    cluster_config['config']={}
+
+    cluster_common_services_file=report_directory+'common_services.json'
+
+    with open(cluster_common_services_file) as read_common_services:
+        load_common_services=json.load(read_common_services)
+
+        numberofservices=len(load_common_services['common_service_name'])
+
+        for service in range(numberofservices):
+            service_type=load_common_services['common_service_name'][service][cluster_name+'_service_type']
+            service_name=load_common_services['common_service_name'][service][cluster_name+'_service_name']
+            service_wide_config_file=report_directory+cluster_name+"-"+service_type+"-"+service_name+"-service_wide_config.json"
+            role_type="service-wide"
+
+            if service_type not in cluster_config['config']:
+                cluster_config['config'][service_type]={}
+
+                if role_type not in cluster_config['config'][service_type]:
+                    cluster_config['config'][service_type][role_type]={}
+
+                    with open(service_wide_config_file) as serviceconfig:
+                            serviceconf=json.load(serviceconfig)
+
+                    numberofconfig=len(serviceconf['items'])
+
+                    for config in range(numberofconfig):
+
+                        if "value" in serviceconf['items'][config]:
+                            config_name=serviceconf['items'][config]['name']
+                            config_value=serviceconf['items'][config]['value']
+
+                        else:
+                            config_name=serviceconf['items'][config]['name']
+                            config_value='default'
+
+                        if config_name not in cluster_config['config'][service_type][role_type]:
+                            cluster_config['config'][service_type][role_type][config_name]=[config_value]
+
+                        else:
+                            if config_value not in cluster_config['config'][service_type][role_type][config_name]:
+                                cluster_config['config'][service_type][role_type][config_name].append(config_value)
+
+            else:
+
+                if role_type not in cluster_config['config'][service_type]:
+                    cluster_config['config'][service_type][role_type]={}
+
+                with open(service_wide_config_file) as serviceconfig:
+                    serviceconf=json.load(serviceconfig)
+
+                numberofconfig=len(serviceconf['items'])
+
+                for config in range(numberofconfig):
+
+                    if "value" in serviceconf['items'][config]:
+                        config_name=serviceconf['items'][config]['name']
+                        config_value=serviceconf['items'][config]['value']
+
+                    else:
+                        config_name=serviceconf['items'][config]['name']
+                        config_value='default'
+
+                    if config_name not in cluster_config['config'][service_type][role_type]:
+                        cluster_config['config'][service_type][role_type][config_name]=[config_value]
+
+                    else:
+                        if config_value not in cluster_config['config'][service_type][role_type][config_name]:
+                            cluster_config['config'][service_type][role_type][config_name].append(config_value)
+
+### Role wide config
+
+    cluster_role_group_config_file=report_directory+cluster_name+'-_role_config_data.json'
+
+    with open(cluster_role_group_config_file) as readgroupconfig:
+        rolegroupdata=json.load(readgroupconfig)
+
+    rolegroupservices=len(rolegroupdata['config'].keys())
+
+    for service in range(rolegroupservices):
+        service_type=rolegroupdata['config'].keys()[service]
+
+        if service_type not in cluster_config['config']:
+            cluster_config['config'][service_type]={}
+
+        numberofroles=len(rolegroupdata['config'][service_type].keys())
+
+        for servicerole in range(numberofroles):
+            rolegroup_type=rolegroupdata['config'][service_type].keys()[servicerole]
+
+            if rolegroup_type not in cluster_config['config'][service_type]:
+                cluster_config['config'][service_type][rolegroup_type]={}
+
+            numberofconfig=len(rolegroupdata['config'][service_type][rolegroup_type])
+
+            for config in range(numberofconfig):
+                config_name=rolegroupdata['config'][service_type][rolegroup_type][config]['parameter']
+                config_value=rolegroupdata['config'][service_type][rolegroup_type][config]['value']
+
+                if config_name not in cluster_config['config'][service_type][rolegroup_type]:
+                    cluster_config['config'][service_type][rolegroup_type][config_name]=[config_value]
+
+                else:
+                    if config_value not in cluster_config['config'][service_type][rolegroup_type][config_name]:
+                        cluster_config['config'][service_type][rolegroup_type][config_name].append(config_value)
+
+            cluster_consolidated_file=report_directory+cluster_name+'_consolidated.json'
+
+            with open(cluster_consolidated_file, 'w') as consolidate_config:
+                json.dump(cluster_config, consolidate_config, indent=4, sort_keys=True)
+
+### Calling Function
+
+prepare_cluster_consolidated_config_file(source_cluster)
+prepare_cluster_consolidated_config_file(destination_cluster)

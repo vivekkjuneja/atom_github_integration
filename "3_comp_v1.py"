@@ -1,0 +1,90 @@
+import json
+import sys
+
+source_cluster=sys.argv[1].upper()
+destination_cluster=sys.argv[2].upper()
+report_directory=sys.argv[3]
+
+def compare_cluster_config(cluster_1,cluster_2):
+
+    comp={}
+    comp['config']={}
+
+    source_cluster_consolidated_file=report_directory+source_cluster+"_consolidated.json"
+    destination_cluster_consolidated_file=report_directory+destination_cluster+"_consolidated.json"
+
+    with open (source_cluster_consolidated_file) as source_config_file:
+        source_file=json.load(source_config_file)
+
+    with open (destination_cluster_consolidated_file) as destination_config_file:
+        destination_file=json.load(destination_config_file)
+
+    source_service_count=len(source_file['config'].keys())
+
+    for source_service in range(source_service_count):
+        source_service_type=source_file['config'].keys()[source_service]
+
+        if source_service_type not in comp['config']:
+            comp['config'][source_service_type]={}
+
+            source_service_role_count=len(source_file['config'][source_service_type].keys())
+
+            for source_service_role in range(source_service_role_count):
+                source_role_type=source_file['config'][source_service_type].keys()[source_service_role]
+
+                destination_service_role_count=len(destination_file['config'][source_service_type.keys()])
+
+                for dest_service_role in range(destination_service_role_count):
+                    dest_role_type=destination_file['config'][source_service_type].keys()[dest_service_role]
+
+                    if source_role_type==dest_role_type:
+
+                        if source_role_type not in comp['config'][source_service_type]:
+                            comp['config'][source_service_type][source_role_type]={}
+
+                            source_config_count=len(source_file['config'][source_service_type][source_role_type].keys())
+
+                            for source_config_name in range(source_config_count):
+                                source_config_parameter=source_file['config'][source_service_type][source_role_type].keys()[source_config_name]
+
+                                configvaluecount=len(source_file['config'][source_service_type][source_role_type][source_config_parameter])
+
+                                s_config_val=[]
+
+                                for source_config_value in range(configvaluecount):
+                                    source_config_value=source_file['config'][source_service_type][source_role_type][source_config_parameter][source_config_value]
+
+                                    if source_config_value not in s_config_val:
+                                        s_config_val.append(source_config_value)
+
+                                    dest_config_count=len(destination_file['config'][source_service_type[dest_role_type].keys()])
+
+                                    for dest_config_name in range(dest_config_count):
+                                        dest_config_parameter=destination_file['config'][source_service_type][dest_role_type].keys()[dest_config_name]
+
+                                        destconfigvaluecount=len(destination_file['config'][source_service_type][dest_role_type][dest_config_parameter])
+
+                                        d_config_val=[]
+
+                                        for dest_config_value in range (destconfigvaluecount):
+
+                                            dest_config_value=destination_file['config'][source_service_type][dest_role_type][dest_config_parameter][dest_config_value]
+
+                                            if dest_config_value not in d_config_val:
+                                                if (
+                                                    source_config_parameter==dest_config_parameter and
+                                                    s_config_val!=d_config_val
+                                                ):
+                                                    comp['config'][source_service_type][source_role_type][source_config_parameter]=[]
+
+                                                    comp['config'][source_service_type][source_role_type][source_config_parameter]={source_cluster+"_value":s_config_val, destination_cluster+"_value":d_config_val}
+
+    cluster_compare_report=report_directory+source_cluster+"_Vs_"+destination_cluster+"_cluster_compare_report.json"
+
+    with open(cluster_compare_report, 'w') as comp_report:
+        json.dump(comp, comp_report, indent=4, sort_keys=True)
+
+
+#### Calling Function
+
+compare_cluster_config(source_cluster,destination_cluster)
