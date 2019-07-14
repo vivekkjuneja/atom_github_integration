@@ -12,25 +12,25 @@ def prep_exclude_param_json_file(exclude_parameter_file_txt):
 
     csv_filename=exclude_parameter_file_txt
 
-    exclude_parameter_list=open(csv_filename)
+    exclude_parameter_list=open(csv_filename, 'r')
 
-    csv_reader=csv.DectReader(exclude_parameter_list,filednames)
+    csv_reader=csv.DictReader(exclude_parameter_list,filednames)
 
     exclude_parameters_json_file=report_directory+'exclude_parameter_json_file.json'
 
     jsonf=open(exclude_parameters_json_file, 'w')
 
-    excludeparameterjson=json.dump([r for r in csv_reader], indent=4)
+    excludeparameterjson=json.dumps([r for r in csv_reader], indent=4)
 
-    jsonf.write(excludeparameterjson)
+    jsonf.write(excludeparametersjson)
 
     exclude_parameter_list.close()
 
-    json.close()
+    jsonf.close()
 
 def filter_report(exclude_param_list,without_filter_compare_report):
 
-    with open (exclude_param_list) as excludelist:
+    with open (exclude_param_list, 'r') as excludelist:
         excludeparam=json.load(excludelist)
 
     rangelen=len(excludeparam)
@@ -111,6 +111,12 @@ def filter_report(exclude_param_list,without_filter_compare_report):
                                         config_value_source_cluster_redacted=(str(source_cluster_Value)).split(redact_value,1)[0]+" ###sensative data so trimmed remaining ###"
 
                                         if str(service_type)+"-"+str(role_type)+"-"+str(config_name) not in configname:
+                                            summary['config'][service_type][role_type][config_name]={destination_cluster+"_Value":config_value_destination_cluster_redacted, source_cluster+"_Value":config_value_source_cluster_redacted}
+                                            break;
+
+                                    else:
+
+                                        if str(service_type)+"-"+str(role_type)+"-"+str(config_name) not in configname:
                                             summary['config'][service_type][role_type][config_name]={destination_cluster+"_Value":destination_cluster_Value, source_cluster+"_Value":source_cluster_Value}
 
     summary_filtered_report=report_directory+source_cluster+"-"+destination_cluster+"_summary_filtered_redacted_report.json"
@@ -122,3 +128,4 @@ def filter_report(exclude_param_list,without_filter_compare_report):
 ### Calling Function
 
 prep_exclude_param_json_file('exclude_parameter.csv')
+filter_report(report_directory+'exclude_parameters_json_file.json',report_directory+source_cluster+'_Vs_'+destination_cluster+'_cluster_compare_report.json')
