@@ -1,0 +1,1 @@
+00 12 * * 1,5 root  cd /script/directory/scripts/ ; /bin/bash /script/directory/scripts/master.sh SourceCluster_NAME DesitinationCluster_Name cm_user influxdb_host cm cm cmpass & >> /script/directory/scripts/cluster_config_compare.log

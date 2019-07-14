@@ -1,0 +1,9 @@
+influx:
+	host:'hostname'
+	port:8086
+	db:'cm'
+	user'cm'
+	pass:'cmpass'
+	ssl: yes
+	verify_ssl: no
+
