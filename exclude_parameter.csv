@@ -1,0 +1,2 @@
+FLUME,service-wide,hbase_service
+HDFS,DATANODE,dfs_data_dir_list
